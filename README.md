@@ -66,6 +66,32 @@ Can also be installed in VS Code: Launch VS Code Quick Open (Ctrl+P), paste the 
 ext install esbenp.prettier-vscode
 ```
 
+## Local Fork Workflow
+
+This fork is set up to build local VSIX packages under the `arda` publisher.
+
+### Build
+
+```bash
+npm ci
+npm run compile
+npm run package
+```
+
+The package command writes `prettier-vscode-12.4.0.vsix` in the repository root.
+
+### Install In VS Code
+
+```bash
+code --install-extension ./prettier-vscode-12.4.0.vsix --force
+```
+
+### Run In An Extension Development Host
+
+```bash
+code --extensionDevelopmentPath=. --new-window
+```
+
 ### Default Formatter
 
 To ensure that this extension is used over other extensions you may have installed, be sure to set it as the default formatter in your VS Code settings. This setting can be set for all languages or by a specific language.
