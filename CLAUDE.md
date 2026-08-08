@@ -1,123 +1,93 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+These rules apply to every task in this repository unless explicitly overridden.
+Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
 
-## Project Overview
+This file is generic and identical across projects. **It contains no project-specific
+information.** `AGENTS.md` is a symlink to this file, so Claude Code, Codex, Kimi, Cursor
+and anything else reading either name get the same rules.
 
-This is the official Prettier VS Code extension (`esbenp.prettier-vscode`). It provides code formatting using Prettier for Visual Studio Code, supporting JavaScript, TypeScript, CSS, HTML, Vue, and many other languages.
+## Where knowledge lives
 
-## Common Commands
+Read in this order. Stop as soon as you have what you need.
 
-```bash
-# Install dependencies
-npm install
+| Layer | File | Contains |
+|---|---|---|
+| 1. Rules | `CLAUDE.md` = `AGENTS.md` (this file) | How to work. Generic, never project-specific. |
+| 2. Project | [PROJECT.md](PROJECT.md) | This project: architecture, constraints, key files, how to run and validate. |
+| 3. Wiki | `llm-wiki/index.md` (if present) | Compounding knowledge: decisions, entities, sources. |
 
-# Build for development
-npm run compile
+**Before changing project behavior, read `PROJECT.md`.** It is the handoff document and
+takes precedence over anything you infer from the code.
 
-# Build for production
-npm run package
+If a project has an `llm-wiki/`, it follows the Karpathy LLM-wiki pattern: raw sources are
+compiled once into interlinked pages, and you query the wiki rather than re-deriving from
+sources. Start at `index.md` and `agent-rules.md`. Append to `log.md` when you change it.
+Treat archived pages as historical only — never cite them as current.
 
-# Watch mode (esbuild + TypeScript type checking)
-npm run watch
+Keep the layers honest: a fact that is true of every project belongs here; a fact true of
+this project belongs in `PROJECT.md`; a fact that took real work to establish belongs in
+the wiki. Duplicating across layers is how they drift.
 
-# Run linting
-npm run lint
+## Rule 1 — Think before coding
+State assumptions explicitly. If uncertain, ask rather than guess.
+Present multiple interpretations when ambiguity exists.
+Push back when a simpler approach exists.
+Stop when confused. Name what's unclear.
 
-# Format code with Prettier
-npm run prettier
+## Rule 2 — Simplicity first
+Minimum code that solves the problem. Nothing speculative.
+No features beyond what was asked. No abstractions for single-use code.
+Test: would a senior engineer say this is overcomplicated? If yes, simplify.
 
-# Run tests (requires no VS Code instance running)
-npm test
+## Rule 3 — Surgical changes
+Touch only what you must. Clean up only your own mess.
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor what isn't broken. Match existing style.
 
-# Run web extension tests (headless browser)
-npm run test:web
+## Rule 4 — Goal-driven execution
+Define success criteria. Loop until verified.
+Don't follow steps. Define success and iterate.
+Strong success criteria let you loop independently.
 
-# Compile tests only
-npm run compile:test
-```
+## Rule 5 — Use the model only for judgment calls
+Use the model for: classification, drafting, summarization, extraction.
+Do NOT use it for: routing, retries, deterministic transforms.
+If code can answer, code answers.
 
-## Running Tests
+## Rule 6 — Token budgets are not advisory
+Per-task: 4,000 tokens. Per-session: 30,000 tokens.
+If approaching budget, summarize and start fresh.
+Surface the breach. Do not silently overrun.
 
-### Desktop Tests
+## Rule 7 — Surface conflicts, don't average them
+If two patterns contradict, pick one (more recent / more tested).
+Explain why. Flag the other for cleanup.
+Don't blend conflicting patterns.
 
-Tests require the `test-fixtures/` workspace and run inside a VS Code instance:
+## Rule 8 — Read before you write
+Before adding code, read exports, immediate callers, shared utilities.
+"Looks orthogonal" is dangerous. If unsure why code is structured a way, ask.
 
-1. **Via VS Code Debug**: Open Debug sidebar → "Launch Tests"
-2. **Via CLI**: `npm test` (no VS Code instance can be running)
+## Rule 9 — Tests verify intent, not just behavior
+Tests must encode WHY behavior matters, not just WHAT it does.
+A test that can't fail when business logic changes is wrong.
 
-Before running tests, `npm run pretest` installs dependencies in various test fixture directories.
+## Rule 10 — Checkpoint after every significant step
+Summarize what was done, what's verified, what's left.
+Don't continue from a state you can't describe back.
+If you lose track, stop and restate.
 
-### Web Extension Tests
+## Rule 11 — Match the codebase's conventions, even if you disagree
+Conformance > taste inside the codebase.
+If you genuinely think a convention is harmful, surface it. Don't fork silently.
 
-Web tests run in a headless Chromium browser to verify the web extension works correctly:
+## Rule 12 — Fail loud
+"Completed" is wrong if anything was skipped silently.
+"Tests pass" is wrong if any were skipped.
+Default to surfacing uncertainty, not hiding it.
 
-```bash
-npm run test:web
-```
-
-Web tests are located in `src/test/web/suite/` and test the extension's browser functionality.
-
-## Architecture
-
-### Entry Points
-
-- **Desktop**: `src/extension.ts` → bundled to `dist/extension.js`
-- **Browser**: Same entry, bundled to `dist/web-extension.cjs` (esbuild swaps `ModuleResolverNode.ts` → `ModuleResolverWeb.ts`)
-
-### Core Components
-
-**Extension Activation** (`src/extension.ts`):
-
-- Creates `ModuleResolver`, `PrettierEditService`, and `StatusBar`
-- Registers formatting commands and disposables
-
-**PrettierEditService** (`src/PrettierEditService.ts`):
-
-- Registers VS Code document formatting providers
-- Handles format document/selection requests
-- Watches for config file changes (`.prettierrc`, `package.json`, etc.)
-- Builds language selectors based on Prettier's supported languages + plugins
-
-**ModuleResolver** (`src/ModuleResolverNode.ts` for desktop, `src/ModuleResolverWeb.ts` for browser):
-
-- **Desktop (ModuleResolverNode.ts)**: Resolves local/global Prettier installations, falls back to bundled Prettier, caches resolved modules, handles Workspace Trust
-- **Browser (ModuleResolverWeb.ts)**: Uses bundled Prettier standalone with all built-in plugins
-
-**Prettier Instance** (`src/PrettierDynamicInstance.ts`):
-
-- Implements the `PrettierInstance` interface (defined in `src/types.ts`)
-- Loads Prettier dynamically using ESM `import()` for lazy loading
-- Works with both Prettier v2 and v3+
-
-### Bundling
-
-esbuild produces two bundles:
-
-- Node bundle (`dist/extension.js`) for desktop VS Code
-- Web bundle (`dist/web-extension.cjs`) for vscode.dev/browser
-
-The browser build uses path aliasing to swap `ModuleResolverNode.ts` → `ModuleResolverWeb.ts`.
-
-Build configuration is in `esbuild.mjs`.
-
-## Test Fixtures
-
-Test fixtures in `test-fixtures/` each have their own `package.json` and Prettier configurations:
-
-- `project/` - Main test project with format test files
-- `plugins/`, `v3-plugins/` - Plugin testing
-- `v3/` - Prettier v3 specific tests
-- `outdated/` - Outdated Prettier version testing
-
-The `.do-not-use-prettier-vscode-root` marker file stops the module resolver from searching above the test fixtures directory.
-
-## Key Extension Settings
-
-Configuration in `package.json` contributes settings prefixed with `prettier.`:
-
-- `prettier.enable` - Enable/disable extension
-- `prettier.requireConfig` - Require a config file to format
-- `prettier.configPath` - Custom config file path
-- `prettier.prettierPath` - Custom Prettier module path
-- `prettier.resolveGlobalModules` - Allow global module resolution
+## Rule 13 — Keep these documents current
+When you learn something that contradicts `PROJECT.md`, fix `PROJECT.md` in the same
+change. A stale handoff document is worse than none — the next agent will trust it.
+Never edit `AGENTS.md`: it is a symlink to this file.
